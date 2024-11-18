@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}거래 분석 - 가계부{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- 전체 요약 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4 class="mb-0">전체 계좌 현황</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h6 class="card-subtitle mb-2 text-muted">총 잔액</h6>
+                            <h4 class="card-title" id="total-balance">0원</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h6 class="card-subtitle mb-2">이번 달 입금</h6>
+                            <h4 class="card-title" id="total-deposits">0원</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body text-center">
+                            <h6 class="card-subtitle mb-2">이번 달 출금</h6>
+                            <h4 class="card-title" id="total-withdrawals">0원</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h6 class="card-subtitle mb-2">이번 달 거래</h6>
+                            <h4 class="card-title" id="total-transactions">0건</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 계좌별 분석 -->
+    {% for account in accounts %}
+    <div class="card mb-4" data-account-id="{{ account.pk }}">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-0">{{ account.get_bank_code_display }}</h5>
+                <small class="text-muted">{{ account.account_number }}</small>
+            </div>
+            <span class="badge bg-primary">잔액: {{ account.balance|floatformat:"0"|intcomma }}원</span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-7">
+                    <h6>거래 추이</h6>
+                    <canvas class="transaction-chart"></canvas>
+                </div>
+                <div class="col-md-5">
+                    <h6>최근 거래내역</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>일시</th>
+                                    <th>구분</th>
+                                    <th class="text-end">금액</th>
+                                </tr>
+                            </thead>
+                            <tbody class="recent-transactions">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const charts = {};
+
+function updateAnalysis() {
+    document.querySelectorAll('[data-account-id]').forEach(card => {
+        const accountId = card.dataset.accountId;
+        
+        fetch(`/accounts/${accountId}/analysis/api/`)
+            .then(response => response.json())
+            .then(data => {
+                // 최근 거래내역 업데이트
+                const tbody = card.querySelector('.recent-transactions');
+                tbody.innerHTML = data.recent_transactions.map(t => `
+                    <tr>
+                        <td>${new Date(t.transaction_date).toLocaleDateString()}</td>
+                        <td>
+                            <span class="badge ${t.transaction_type === 'deposit' ? 'bg-success' : 'bg-danger'}">
+                                ${t.transaction_type === 'deposit' ? '입금' : '출금'}
+                            </span>
+                        </td>
+                        <td class="text-end ${t.transaction_type === 'deposit' ? 'text-success' : 'text-danger'}">
+                            ${Number(t.amount).toLocaleString()}원
+                        </td>
+                    </tr>
+                `).join('');
+
+                // 차트 업데이트
+                const ctx = card.querySelector('.transaction-chart').getContext('2d');
+                if (charts[accountId]) {
+                    charts[accountId].destroy();
+                }
+                
+                charts[accountId] = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.dates,
+                        datasets: [
+                            {
+                                label: '입금',
+                                data: data.deposits,
+                                borderColor: '#198754',
+                                tension: 0.1
+                            },
+                            {
+                                label: '출금',
+                                data: data.withdrawals,
+                                borderColor: '#dc3545',
+                                tension: 0.1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: value => `${Number(value).toLocaleString()}원`
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // 잔액 업데이트
+                card.querySelector('.badge').textContent = 
+                    `잔액: ${Number(data.balance).toLocaleString()}원`;
+            });
+    });
+
+    // 전체 요약 업데이트
+    fetch('/accounts/analysis/summary/api/')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('total-balance').textContent = 
+                `${Number(data.total_balance).toLocaleString()}원`;
+            document.getElementById('total-deposits').textContent = 
+                `${Number(data.monthly_deposits).toLocaleString()}원`;
+            document.getElementById('total-withdrawals').textContent = 
+                `${Number(data.monthly_withdrawals).toLocaleString()}원`;
+            document.getElementById('total-transactions').textContent = 
+                `${data.monthly_transactions}건`;
+        });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateAnalysis();
+    setInterval(updateAnalysis, 10000);
+});
+</script>
+{% endblock %}

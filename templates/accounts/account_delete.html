@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}계좌 삭제 - 가계부{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">계좌 삭제</h2>
+                    
+                    <div class="alert alert-danger">
+                        <p>정말로 이 계좌를 삭제하시겠습니까?</p>
+                        <p><strong>은행:</strong> {{ account.get_bank_code_display }}</p>
+                        <p><strong>계좌번호:</strong> {{ account.account_number }}</p>
+                        <p><strong>잔액:</strong> {{ account.balance }}원</p>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-danger">삭제</button>
+                            <a href="{% url 'accounts:account_detail' account.pk %}" class="btn btn-secondary">취소</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

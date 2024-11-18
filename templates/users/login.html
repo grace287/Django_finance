@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load socialaccount %}
+{% load static %}
+
+{% block title %}로그인 - 가계부{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">로그인</h2>
+                
+                <!-- 소셜 로그인 버튼들 -->
+                <div class="social-login mb-4">
+                    <button onclick="location.href='{% url 'social:begin' 'kakao' %}'" 
+                            class="social-login-button kakao-login">
+                        <img src="/static/images/kakao-icon.png" alt="Kakao">
+                        카카오로 시작하기
+                    </button>
+                    
+                    <button onclick="location.href='{% url 'social:begin' 'google-oauth2' %}'" 
+                            class="social-login-button google-login">
+                        <img src="/static/images/google-icon.png" alt="Google">
+                        Google로 시작하기
+                    </button>
+                    
+                    <button onclick="location.href='{% url 'social:begin' 'naver' %}'" 
+                            class="social-login-button naver-login">
+                        <img src="/static/images/naver-icon.png" alt="Naver">
+                        네이버로 시작하기
+                    </button>
+                </div>
+                
+                <div class="divider">
+                    <span>또는</span>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="email" class="form-label">이메일</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">비밀번호</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">로그인</button>
+                    </div>
+                </form>
+                <div class="text-center mt-3">
+                    <p>계정이 없으신가요? <a href="{% url 'users:signup' %}">회원가입</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

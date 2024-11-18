@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}분석 결과 - 가계부{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="card-title">{{ analysis.get_about_display }} 분석</h2>
+            <h6 class="card-subtitle mb-2 text-muted">
+                {{ analysis.period_start|date:"Y-m-d" }} ~ {{ analysis.period_end|date:"Y-m-d" }}
+            </h6>
+            <p class="card-text">
+                <strong>분석 유형:</strong> {{ analysis.get_type_display }}
+            </p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            {% if analysis.result_image %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">분석 그래프</h5>
+                    <img src="{{ analysis.result_image.url }}" class="img-fluid" alt="분석 그래프">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">분석 내용</h5>
+                    <p class="card-text">{{ analysis.description|linebreaksbr }}</p>
+                    <p class="card-text">
+                        <small class="text-muted">
+                            생성일: {{ analysis.created_at|date:"Y-m-d H:i" }}
+                        </small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{% url 'analysis:analysis_list' %}" class="btn btn-secondary">목록으로</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}계좌 상세 - 가계부{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-body">
+            <h1 class="card-title">{{ account.get_bank_code_display }}</h1>
+            <h6 class="card-subtitle mb-2 text-muted">{{ account.account_number }}</h6>
+            
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <p><strong>계좌유형:</strong> {{ account.get_account_type_display }}</p>
+                    <p><strong>현재잔액:</strong> {{ account.balance }}원</p>
+                    <p><strong>생성일:</strong> {{ account.created_at|date:"Y-m-d" }}</p>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <a href="{% url 'accounts:account_update' account.pk %}" class="btn btn-primary">수정</a>
+                <a href="{% url 'accounts:account_delete' account.pk %}" class="btn btn-danger">삭제</a>
+                <a href="{% url 'accounts:account_list' %}" class="btn btn-secondary">목록으로</a>
+            </div>
+            <a href="{% url 'accounts:account_transaction_list' account.pk %}" class="btn btn-info">거래내역</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

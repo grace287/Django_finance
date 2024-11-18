@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}거래내역 - 가계부{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="card-title">{{ account.get_bank_code_display }}</h2>
+            <h6 class="card-subtitle mb-2 text-muted">{{ account.account_number }}</h6>
+            <p class="card-text">
+                <strong>현재잔액:</strong> {{ account.balance|floatformat:"0"|intcomma }}원
+            </p>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>거래내역</h3>
+        <div>
+            <a href="{% url 'accounts:transaction_create' account.pk %}?type=deposit" class="btn btn-success">입금</a>
+            <a href="{% url 'accounts:transaction_create' account.pk %}?type=withdrawal" class="btn btn-danger">출금</a>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>거래일시</th>
+                    <th>구분</th>
+                    <th>금액</th>
+                    <th>잔액</th>
+                    <th>내용</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                <tr>
+                    <td>{{ transaction.transaction_date|date:"Y-m-d H:i" }}</td>
+                    <td>
+                        <span class="badge {% if transaction.transaction_type == 'deposit' %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ transaction.get_transaction_type_display }}
+                        </span>
+                    </td>
+                    <td class="{% if transaction.transaction_type == 'deposit' %}text-success{% else %}text-danger{% endif %}">
+                        {{ transaction.amount|floatformat:"0"|intcomma }}원
+                    </td>
+                    <td>{{ transaction.balance_after_transaction|floatformat:"0"|intcomma }}원</td>
+                    <td>{{ transaction.description }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">거래내역이 없습니다.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateTransactions() {
+    fetch(`/accounts/{{ account.pk }}/transactions/api/`)
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.querySelector('tbody');
+            tbody.innerHTML = '';
+            
+            if (data.transactions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center">거래내역이 없습니다.</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            data.transactions.forEach(transaction => {
+                const row = `
+                    <tr>
+                        <td>${new Date(transaction.transaction_date).toLocaleString()}</td>
+                        <td>
+                            <span class="badge ${transaction.transaction_type === 'deposit' ? 'bg-success' : 'bg-danger'}">
+                                ${transaction.transaction_type === 'deposit' ? '입금' : '출금'}
+                            </span>
+                        </td>
+                        <td class="${transaction.transaction_type === 'deposit' ? 'text-success' : 'text-danger'}">
+                            ${Number(transaction.amount).toLocaleString()}원
+                        </td>
+                        <td>${Number(transaction.balance_after_transaction).toLocaleString()}원</td>
+                        <td>${transaction.description}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+            
+            // 계좌 잔액 업데이트
+            document.querySelector('.card-text strong').nextSibling.textContent = 
+                ` ${Number(data.account_balance).toLocaleString()}원`;
+        });
+}
+
+// 페이지 로드 시 및 10초마다 거래내역 갱신
+document.addEventListener('DOMContentLoaded', () => {
+    updateTransactions();
+    setInterval(updateTransactions, 10000);
+});
+</script>
+{% endblock %}
